@@ -20,14 +20,26 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button[][] buttons = new Button[4][4];
     private int moves;
     private TextView MovesCounter;
-    Chronometer Timer;
-    private SharedPreferences sp;
+    Chronometer chronometer;
+    private SharedPreferences shared_pref;
+
+    public boolean IsSolvable(List<Integer> list) {
+        int inverse_count = 0;
+        for (int i = 0; i < 15; i++) {
+            for (int j = i; j < 15; j++) {
+                if (list.get(i)!=0 && list.get(j)!=0 &&list.get(i) > list.get(j)) {
+                    inverse_count += 1;
+                }
+            }
+        }
+        return inverse_count % 2 == 1;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        sp = getPreferences(MODE_PRIVATE); //since i have only 1 sp file, i don't need to mention it
+        shared_pref = getPreferences(MODE_PRIVATE); //since i have only 1 shared_pref file, i don't need to mention it
 
         List<Integer> list = new ArrayList<>();  //like vector template
         for (int i = 1; i <= 15; i++)
@@ -35,27 +47,28 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Collections.shuffle(list);
         list.add(0);
 
+        while (!IsSolvable(list)){
+            Collections.shuffle(list);
+        }
+
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
 
         int k = 0;
-        //int flag = 0;
         for (int i = 0; i < 4; i++)
             for (int j = 0; j < 4; j++) {
                 buttons[i][j] = new Button(this);
                 buttons[i][j].setTag(i + " " + j);
-                String val = sp.getString(i + " " + j,list.get(k++) + "" );
+                String val = shared_pref.getString(i + " " + j,list.get(k++).toString() );
                 //either i+j or k if former not available
-                //if (val.equals(""))  flag = 1;
                 buttons[i][j].setText(val);
                 buttons[i][j].setLayoutParams(params);
                 buttons[i][j].setOnClickListener(this); //main activity listens when clicked
             }
         if (buttons[3][3].getText().toString().equals("0"))  {
             buttons[3][3].setText("");
-            //flag = 1;
         }
 
-        moves = sp.getInt("moves", 0);
+        moves = shared_pref.getInt("moves", 0);
 
         LinearLayout page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
@@ -82,13 +95,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         //Timer
         TextView Time = new TextView(this);
         Time.setLayoutParams(params);
-        Time.setText("Time: ");
+        Time.setText("Timer:");
         NewLine.addView(Time);
-        Timer = new Chronometer(this);
-        Timer.start();
-        //Timer.setBase(SystemClock.elapsedRealtime());
-        Timer.setLayoutParams(params);
-        NewLine.addView(Timer);
+        chronometer = new Chronometer(this);
+        if (shared_pref.getLong("chrono", -1) != -1)
+            chronometer.setBase(shared_pref.getLong("chrono", 0));
+        chronometer.start();
+        chronometer.setLayoutParams(params);
+
+        NewLine.addView(chronometer);
 
         page.addView(NewLine);
 
@@ -132,11 +147,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             .setTitle("Congratulations!!")
                             .setMessage("You win!")
                             .show();
-                    Timer.stop();
-                    sp.edit().clear().commit();
+                    chronometer.stop();
+                    shared_pref.edit().clear().apply();
                 }
-                else
+                else {
                     Toast.makeText(this, "Continue", Toast.LENGTH_SHORT).show();
+                }
                 break;
             }
         }
@@ -146,26 +162,25 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onBackPressed() {
         new AlertDialog.Builder(this)
                 .setTitle("Save game")
-                .setMessage("Would u like to save the game?")
+                .setMessage("Would you like to save the game?")
                 .setPositiveButton("Yes", new DialogInterface.OnClickListener() { //anonymous class
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        SharedPreferences.Editor editor = sp.edit();
+                        SharedPreferences.Editor editor = shared_pref.edit();
                         for (int i = 0; i < 4; i++)
                             for (int j = 0; j < 4; j++)
                                 editor.putString(i + " " + j, buttons[i][j].getText().toString());
                         editor.putInt("moves", moves);
-                        //long timeElapsed = SystemClock.elapsedRealtime() - Timer.getBase();
-                        //editor.putLong("time", timeElapsed);
-                        editor.commit(); //save to shared pref
+                        editor.putLong("chrono", chronometer.getBase());
+                        editor.apply(); //save to shared pref
                         finish();
-                        //  dialog.dismiss();
+                        // dialog.dismiss();
                     }
                 })
                 .setNegativeButton("No", new DialogInterface.OnClickListener() { //anonymous class
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        sp.edit().clear().commit();
+                        shared_pref.edit().clear().apply();
                         finish();
                     }
                 })
