@@ -23,6 +23,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     Chronometer chronometer;
     private SharedPreferences shared_pref;
 
+    //function which checks if the generated series is a solvable 15-puzzle
     public boolean IsSolvable(List<Integer> list) {
         int inverse_count = 0;
         for (int i = 0; i < 15; i++) {
@@ -32,16 +33,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
             }
         }
-        return inverse_count % 2 == 1;
+        return inverse_count % 2 == 0;
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        shared_pref = getPreferences(MODE_PRIVATE); //since i have only 1 shared_pref file, i don't need to mention it
+        shared_pref = getPreferences(MODE_PRIVATE);
+        //since there is 1 shared_pref file
+        //no need to explicitly mention thee name
 
-        List<Integer> list = new ArrayList<>();  //like vector template
+        List<Integer> list = new ArrayList<>();
         for (int i = 1; i <= 15; i++)
             list.add(i);
         Collections.shuffle(list);
@@ -70,7 +73,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         moves = shared_pref.getInt("moves", 0);
 
-        LinearLayout page = new LinearLayout(this);
+        LinearLayout page;
+        page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
 
         LinearLayout rows = new LinearLayout(this);
@@ -102,9 +106,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             chronometer.setBase(shared_pref.getLong("chrono", 0));
         chronometer.start();
         chronometer.setLayoutParams(params);
-
         NewLine.addView(chronometer);
-
         page.addView(NewLine);
 
 
@@ -126,7 +128,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onClick(View v) {
         Button button = (Button)v;
-
         String[] s = button.getTag().toString().split(" ");
         int x = Integer.parseInt(s[0]);
         int y = Integer.parseInt(s[1]);
@@ -174,7 +175,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         editor.putLong("chrono", chronometer.getBase());
                         editor.apply(); //save to shared pref
                         finish();
-                        // dialog.dismiss();
                     }
                 })
                 .setNegativeButton("No", new DialogInterface.OnClickListener() { //anonymous class
